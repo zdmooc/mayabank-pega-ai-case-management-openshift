@@ -1,0 +1,15 @@
+status: EXAMPLE_ONLY
+environment: prod
+data:
+  classification: production_governed
+availability:
+  target: business_slo_defined
+  multiZoneRequired: "<per-solution-design>"
+promotion:
+  sourceEnvironment: preprod
+  requiresChangeApproval: true
+  requiresSecurityApproval: true
+  requiresRollbackOrForwardFixPlan: true
+release:
+  requireSameApprovedDigestAsPreprod: true
+  immutableDigestRequired: true
