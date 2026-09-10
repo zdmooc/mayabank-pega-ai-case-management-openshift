@@ -1,28 +1,23 @@
-# MayaBank — Pega CRM, Customer Service, Case Management & OpenShift
+# MayaBank — Pega Solution Architecture
 
-Référentiel d’architecture et futur POC démontrable pour construire une solution **Pega orientée Architecte Solution** couvrant :
+Portfolio d’architecture orienté **Architecte Solution Pega — CRM / Customer Service / Case Management / Decisioning / OpenShift — Certified SA & SSA**.
 
-- **CRM / Customer Service / Customer 360** ;
-- **Case Management bancaire et assurance** ;
-- **Decisioning / Next Best Action / règles** ;
-- **API Management, Kafka et IBM MQ** ;
-- **OpenShift, sécurité, observabilité et GitOps** ;
-- **Constellation et AI/GenAI gouvernée** lorsque les composants/licences nécessaires sont disponibles.
+Le dépôt couvre deux dimensions complémentaires :
 
-> **Statut au 10 septembre 2026 : CADRAGE COMPLET / RUNTIME À CONSTRUIRE.**
-> Aucun runtime Pega, composant Customer Service/CDH/Constellation, OpenShift multi-nœuds, Kafka, IBM MQ, ODM ou composant AI n’est déclaré validé dans ce dépôt tant qu’une preuve d’exécution n’est pas versionnée.
+1. **architecture applicative Pega** : Customer Service, Customer 360, Case Management bancaire/assurance, Decisioning, Constellation et AI gouvernée ;
+2. **architecture plateforme Pega** : licences/entitlements, distribution des images officielles, Artifactory/registry governance, Helm, OpenShift, sécurité, GitOps, observabilité, résilience et upgrades.
 
-## Positionnement CV cible
+> **Statut au 10 septembre 2026 : I0-I1 cadrés ; I2-I8 architecture/configuration construites ; runtime Pega non validé faute d’images officielles autorisées.**
+>
+> Aucun composant Pega propriétaire, credential, licence client ou image vendor n’est publié dans ce dépôt. Les parties nécessitant un produit Pega réel restent `DESIGNED` / `STATICALLY VALIDATED` jusqu’à obtention d’un entitlement et d’evidence d’exécution.
 
-**Architecte Solution Pega — CRM / Customer Service / Case Management / Decisioning / OpenShift — Certified SA & SSA**
-
-Le dépôt doit démontrer la chaîne suivante :
+## Architecture cible
 
 ```text
-Customer Journey / Business Case
+Customer / Agent / Channel
           |
           v
-Pega Customer Service / CRM / Customer 360
+Pega Customer Service / Customer 360
           |
           v
 Pega Case Management
@@ -34,32 +29,41 @@ Pega Case Management
           +--> AI assistant gouverné
           |
           v
-Pega Platform sur OpenShift
+Pega Platform
           |
-          +--> IAM / Security
+          +--> Database
+          +--> SRS / Search & Reporting (selon release)
+          +--> Clustering services (selon release)
+          |
+          v
+OpenShift / Client-Managed Platform
+          |
+          +--> IAM / TLS / Secrets / NetworkPolicies
+          +--> Artifactory / Quay / Registry governance
           +--> Observability / SRE
           +--> GitOps / CI-CD
           +--> HA / PRA / Capacity
-          +--> FinOps / GreenOps
 ```
+
+## POC métier principal
+
+**MayaBank Customer Service & Payment Investigation** : un client signale un paiement instantané non reçu. L’agent consulte une vue Customer 360 synthétique, ouvre/rejoint un Service Request, puis Pega orchestre un Case `PAYMENT_UNKNOWN` jusqu’à investigation, décision, validation humaine éventuelle, résolution côté core payment et clôture/audit.
+
+Principe : **Pega orchestre le Case ; le système de paiement reste System of Record financier.**
+
+Un second vertical réutilisera le même socle pour **MayaInsurance Claims Investigation**.
 
 ## Les 4 POC du dépôt
 
-Le portfolio Pega est volontairement regroupé dans **un seul dépôt principal**.
-
 ### POC-A — CRM / Customer Service / Customer 360
-
-Scénario : un client contacte MayaBank pour un paiement instantané non reçu. L’agent ouvre le Customer 360, retrouve les comptes/paiements/interactions et crée un Service Request relié à une investigation.
-
-Capacités visées :
 
 - Customer 360 synthétique ;
 - Customer Interaction ;
 - Service Requests / Complaints ;
-- work queues / routing / SLA / escalation ;
+- routing / work queues / SLA / escalations ;
 - historique d’interactions ;
 - séparation Pega / systèmes de record ;
-- audit et sécurité.
+- audit, consentement, rétention.
 
 ### POC-B — Payment Investigation Case Management
 
@@ -89,35 +93,47 @@ PAYMENT_UNKNOWN    FRAUD_REVIEW   RECONCILIATION_BREAK
      Resolution / Audit
 ```
 
-Le Core Payment reste le système de record financier. Pega orchestre le Case et les tâches humaines.
+### POC-C — Pega Platform / Client-Managed OpenShift
 
-### POC-C — Pega Platform sur OpenShift
+Le POC plateforme couvre désormais explicitement :
 
-Objectif : démontrer l’architecture technique de production autour de Pega :
+```text
+Pega entitlement
+      |
+      v
+Authorized vendor distribution
+      |
+      v
+Quarantine registry
+      |
+      +--> CVE scan
+      +--> SBOM
+      +--> provenance / digest
+      |
+      v
+Approved Artifactory/Quay repository
+      |
+      v
+Pinned Pega Helm chart + environment overlays
+      |
+      v
+LOCAL -> DEV -> TEST -> PREPROD -> PROD
+      |
+      v
+OpenShift
+```
 
-- version/runtime/licences vérifiés avant déploiement ;
-- OpenShift Local/CRC pour les preuves locales compatibles ;
-- namespace, RBAC, quotas, storage, database, TLS, NetworkPolicies ;
-- GitOps / CI-CD ;
-- observabilité ;
-- backup/restore ;
-- sizing/performance ;
-- HA/PRA documentés et validés uniquement sur une infrastructure adaptée.
+Le répertoire [`docs/modernization/`](docs/modernization/) documente les itérations I2-I8. Le répertoire [`platform/pega/`](platform/pega/) contient les contrats de release, registry et environnements.
 
 ### POC-D — Pega moderne : Constellation / Decisioning / AI
 
-Objectif : ajouter les capacités modernes après validation du Case Management déterministe :
-
-- Constellation lorsque disponible ;
-- Customer Decision Hub / Next Best Action lorsque disponible ;
+- Constellation selon version/entitlement ;
+- Customer Decision Hub / Next Best Action selon licence ;
 - stratégie Pega rules vs CDH vs IBM ODM ;
-- case summarization ;
-- RAG procédures ;
-- next investigation step ;
+- case summarization / RAG procédures ;
+- recommended next investigation step ;
 - human-in-the-loop ;
 - provenance, audit et guardrails.
-
-Principe :
 
 ```text
 AI proposes
@@ -127,120 +143,93 @@ AI proposes
  -> Pega records outcome and audit
 ```
 
-## Cas d’usage fil rouge
-
-Le cas principal est **MayaBank Customer Service & Payment Investigation** :
+## Roadmap moderne I0 -> I17
 
 ```text
-Customer
-   |
-   v
-Customer Interaction
-   |
-   v
-Customer 360
-   |
-   v
-Service Request: Payment not received
-   |
-   v
-PAYMENT_UNKNOWN Case
-   |
-   v
-Investigation / Decision / Approval
-   |
-   v
-Payment Core Resolution
-   |
-   v
-Case Closure + Customer Interaction Audit
-```
-
-Une seconde déclinaison réutilisera la même architecture pour **MayaInsurance Claims Customer Service & Investigation**.
-
-## Principes d’architecture
-
-1. **Pega orchestre Customer Service et Case Management ; les cores restent systèmes de record.**
-2. Les données Customer 360 ont un ownership explicite ; Pega ne devient pas implicitement MDM ou ledger.
-3. Aucune décision financière irréversible n’est confiée à un LLM ou à un agent autonome.
-4. Les intégrations synchrones et asynchrones sont choisies explicitement : REST/API, Kafka/Event Streaming ou IBM MQ.
-5. Idempotence, correlation ID, audit trail, timeout, retry borné, DLQ/backout et gestion des états `UNKNOWN` sont obligatoires sur les flux critiques.
-6. OpenShift Local/CRC sert aux preuves locales compatibles mais ne prouve pas une HA multi-worker/multi-zone.
-7. Les composants Pega propriétaires ne sont jamais embarqués dans Git sans droit/licence approprié.
-8. Les secrets, kubeconfigs, pull secrets, mots de passe et états Terraform ne sont jamais versionnés.
-9. Toute affirmation `VALIDATED`, `TESTED`, `HA`, `RPO` ou `RTO` doit être accompagnée d’une evidence reproductible.
-10. Toute décision d’architecture importante doit expliciter options, trade-offs et décision retenue.
-
-## Articulation avec les autres dépôts
-
-Ce dépôt ne doit pas dupliquer les autres POC. Il les intègre :
-
-- `pega-docker-repo` : baseline **legacy/local** à auditer ;
-- `wero-organisme-poc` : domaine Payment / SCT Inst / Wero ;
-- `mayabank-api-management-architecture` : OpenAPI, OAuth/OIDC, mTLS et API governance ;
-- `mayabank-kafka-ddd-openshift` et `kafka-expert` : DDD / Event-Driven / Kafka ;
-- `mayabank-ibm-mq-native-ha-openshift-eda-platform` : IBM MQ / JMS / backout / retry ;
-- `mayabank-ibm-odm-ai-decision-architecture` : règles déterministes / decisioning ;
-- `keycloak-enterprise-roadmap-v7` : IAM/OIDC ;
-- `dynatrace-observability-senior-project` : observabilité/SRE ;
-- `mayabank-servicenow-csdm-cmdb-architecture` : exploitation/CMDB/ITOM ;
-- `argocd-expert-pack` et `openshift-platform-blueprints` : GitOps/OpenShift ;
-- `mayabank-azure-cloud-ai-platform` : cible Azure après validation locale ;
-- `mayabank-carbon-aware-decision-architecture` : FinOps/GreenOps ;
-- `cadrage_202682030` : référentiel maître et priorisation portfolio.
-
-## Architecture cible
-
-La description détaillée existante est dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-Le backlog de réalisation complet est dans [`BACKLOG.md`](BACKLOG.md).
-
-## Roadmap synthétique
-
-```text
+I0  Cadrage / architecture / Definition of Done
 I1  CRM / Customer Service / Case Model
- -> I2  Pega prerequisites / licences / version
- -> I3  Pega on OpenShift Local / CRC
- -> I4  Customer Service + Payment Investigation
- -> I5  API / IAM / Security
- ===== N1 : CV démontrable =====
- -> I6  Kafka
- -> I7  IBM MQ
- -> I8  Decisioning / ODM / CDH
- -> I10 Observability / SRE
- -> I11 GitOps / CI-CD
- -> I12 Resilience
- -> I13 Sizing / Performance
- ===== N2 : Architecte Solution solide =====
- -> I9  Constellation / AI / RAG
- -> I14 FinOps / GreenOps
- -> I15 Insurance reuse
- -> I16 Azure portability
- -> I17 HLD / LLD / DAT / Architecture Board / Demo
- ===== N3 : Portfolio premium =====
+
+I2  Licences / produits / entitlements / support lifecycle
+I3  Images / Registry / Artifactory / SBOM / CVE / promotion
+I4  Helm officiel Pega / architecture OpenShift
+I5  LOCAL / DEV / TEST / PREPROD / PROD
+I6  Database / SRS / clustering / API / Kafka / MQ dependencies
+I7  IAM / TLS / Secrets / RBAC / NetworkPolicies
+I8  GitOps / Argo CD / release promotion
+
+I9  Install / patch / upgrade / rollback / database-aware change
+I10 Observability / PDC / logs / metrics / traces
+I11 HA / PRA / backup / restore / RPO-RTO
+I12 Sizing / performance / capacity / cost
+I13 Pega Cloud vs Client-Managed vs On-Prem decision architecture
+I14 Migration Pega 8.x -> modern Infinity / Constellation
+I15 Customer Service / Customer 360 / Constellation runtime
+I16 CDH / Decisioning / AI-GenAI gouvernée
+I17 HLD / LLD / ADR-DAT / Architecture Board / CV mapping / demo finale
 ```
 
-### Charge indicative
+### Statut I2-I8
 
-- **N1 — CV démontrable : 25–35 h** ;
-- **N2 — Architecte Solution solide : 50–70 h cumulées** ;
-- **N3 — Portfolio premium : 70–100 h cumulées**.
+| Itération | Résultat actuel | Runtime Pega |
+|---|---|---|
+| I2 | architecture licences/entitlement + checklist | non applicable sans contrat réel |
+| I3 | registry/Artifactory + image catalog + promotion + CI guards | image Pega non tirée |
+| I4 | architecture Helm/OpenShift + règles de pin vendor | render réel à faire après pin du chart |
+| I5 | overlays LOCAL/DEV/TEST/PREPROD/PROD | plateforme testable indépendamment |
+| I6 | dépendances DB/SRS/clustering/API/Kafka/MQ | versions à aligner avec release Pega choisie |
+| I7 | architecture IAM/TLS/secrets/network + secret guard | contrôles OpenShift testables |
+| I8 | release manifest + GitOps/promotion + rollback DB-aware | Argo/Pega runtime à tester ultérieurement |
 
-Ces charges sont des estimations de planification et doivent être recalibrées après vérification des licences, composants et contraintes du runtime Pega réellement accessible.
+Voir [`docs/modernization/I2-I8-STATUS.md`](docs/modernization/I2-I8-STATUS.md).
 
-## Definition of Done globale
+## Sources techniques publiques de référence
 
-Le projet ne sera considéré terminé que si :
+La baseline moderne s’inspire notamment des dépôts publics vendor suivants, sans les copier comme preuve de supportabilité :
 
-- le parcours CRM / Customer Service est documenté et démontrable ;
-- le Case Payment Investigation est testable ;
-- les frontières Pega/Core/Customer data/ODM/CDH/AI sont explicites ;
-- les APIs/events/messages sont contractuels et versionnés ;
-- la sécurité et l’audit sont démontrés ;
-- les parties OpenShift déclarées exécutées possèdent une preuve reproductible ;
-- les scénarios de panne sont testés lorsqu’une infrastructure adaptée existe ;
-- les hypothèses de sizing sont séparées des mesures ;
-- les fonctionnalités non accessibles sous licence sont marquées `DESIGNED ONLY` ;
-- chaque claim `TESTED`, `VALIDATED`, `HA`, `RPO`, `RTO` pointe vers une preuve ;
-- aucun nom, secret, donnée ou architecture interne d’une entreprise réelle n’est publié ;
-- une démonstration complète de 20–30 minutes est possible.
+- `pegasystems/pega-helm-charts` — source vendor principale pour les charts/deployment patterns Pega Kubernetes/OpenShift ;
+- `pegasystems/docker-pega-web-ready` — référence pédagogique/historique container ;
+- `jfrog/charts` — patterns JFrog Platform/Artifactory ;
+- `jfrog/jfrog-docker-repo-simple-example` — concepts local/remote/virtual repositories ;
+- `jfrog/Evidence-Examples` — supply-chain evidence/provenance patterns.
+
+Voir [`docs/modernization/PUBLIC-REFERENCE-REPOSITORIES.md`](docs/modernization/PUBLIC-REFERENCE-REPOSITORIES.md).
+
+## Principes obligatoires
+
+1. Pega orchestre Customer Service et Case Management ; les cores restent systèmes de record.
+2. Aucune décision financière irréversible n’est confiée à un LLM autonome.
+3. Les APIs/events/messages critiques sont idempotents, corrélés, auditables et disposent d’une stratégie retry/DLQ/backout.
+4. Les produits/licences/entitlements sont vérifiés avant tout runtime.
+5. Les images Pega officielles ne sont obtenues qu’avec un accès autorisé.
+6. Une image est acquise/scannée une fois puis promue par **digest immuable** ; elle n’est pas reconstruite par environnement.
+7. Secrets, pull secrets, mots de passe, private keys, kubeconfigs et contrats clients restent hors Git.
+8. Le chart Pega officiel est piné ; la configuration MayaBank reste dans des overlays séparés.
+9. Un rollback container n’est pas supposé sûr après un changement de schéma DB Pega.
+10. CRC valide un lab local, jamais une HA multi-worker/multi-zone.
+11. Toute affirmation `VALIDATED`, `TESTED`, `HA`, `RPO` ou `RTO` doit pointer vers une evidence reproductible.
+12. Aucun nom, secret, donnée ou architecture interne d’une entreprise réelle n’est publié.
+
+## Validation automatisée
+
+Une GitHub Action [`Pega Architecture Guard`](.github/workflows/pega-architecture-guard.yml) vérifie notamment :
+
+- absence d’artefacts binaires/propriétaires Pega dans le dépôt ;
+- absence de secrets évidents ;
+- présence des contrats de release/image governance ;
+- syntaxe YAML.
+
+Ces contrôles prouvent l’hygiène du dépôt, **pas l’exécution de Pega**.
+
+## Evidence vocabulary
+
+- `DESIGNED` : architecture documentée.
+- `STATICALLY VALIDATED` : syntaxe/chart/policies vérifiés sans runtime.
+- `PLATFORM VALIDATED` : OpenShift/registry/GitOps exécutés, éventuellement avec images substitutives.
+- `RUNTIME VALIDATED` : runtime Pega autorisé réellement exécuté et smoke-tested.
+- `HA VALIDATED` : scénarios de panne exécutés sur une infrastructure capable de démontrer la propriété HA.
+
+## Prochaine étape exécutable
+
+Sans images Pega officielles, la suite utile est : validation CI, CRC, registry/Artifactory lab avec images substitutives, OpenShift security controls, Argo CD, puis pin d’un chart Pega officiel et `helm lint/template`. Une fois l’entitlement obtenu, on remplace les placeholders par les digests autorisés et on passe au runtime.
+
+Le backlog historique détaillé reste dans [`BACKLOG.md`](BACKLOG.md). La roadmap moderne I2-I8 et les gates sont dans [`docs/modernization/`](docs/modernization/).
