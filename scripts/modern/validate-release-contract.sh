@@ -22,7 +22,7 @@ done
 
 required_release=(
   'pegaRelease:'
-  'vendorChartRef:'
+  'vendorHelmChart:'
   'configurationRevision:'
   'runtime:'
   'installer:'
