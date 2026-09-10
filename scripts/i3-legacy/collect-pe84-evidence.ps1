@@ -6,31 +6,36 @@ $ErrorActionPreference = 'Continue'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$outDir = Join-Path $repoRoot "evidence\runtime\pe84-local\$timestamp"
+$outDir = Join-Path $repoRoot ("evidence\runtime\pe84-local\{0}" -f $timestamp)
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 $summary = New-Object System.Collections.Generic.List[string]
-function Add-Summary([string]$line) { $summary.Add($line) | Out-Null }
-function Save-Text([string]$name, $value) {
-    $value | Out-File -FilePath (Join-Path $outDir $name) -Encoding utf8
+
+function Add-Summary([string]$line) {
+    $summary.Add($line) | Out-Null
 }
 
-Add-Summary '# Pega 8.4 Personal Edition — Local Evidence'
-Add-Summary ''
-Add-Summary "- Timestamp: $(Get-Date -Format o)"
-Add-Summary "- Root: `$Pe84Root`"
+function Save-Text([string]$name, $value) {
+    $target = Join-Path $outDir $name
+    $value | Out-File -FilePath $target -Encoding utf8
+}
 
-if (-not (Test-Path $Pe84Root)) {
+Add-Summary '# Pega 8.4 Personal Edition - Local Evidence'
+Add-Summary ''
+Add-Summary ("- Timestamp: {0}" -f (Get-Date -Format o))
+Add-Summary ("- Root: {0}" -f $Pe84Root)
+
+if (-not (Test-Path -LiteralPath $Pe84Root)) {
     Add-Summary '- Root status: NOT FOUND'
     $summary | Out-File (Join-Path $outDir 'SUMMARY.md') -Encoding utf8
-    Write-Error "Pega Personal Edition root not found: $Pe84Root"
+    Write-Error ("Pega Personal Edition root not found: {0}" -f $Pe84Root)
     exit 2
 }
 Add-Summary '- Root status: FOUND'
 
 # Java/JRE
 $java = Join-Path $Pe84Root 'jre1.8.0_121\bin\java.exe'
-if (Test-Path $java) {
+if (Test-Path -LiteralPath $java) {
     $javaVersion = (& $java -version 2>&1 | Out-String).Trim()
     Save-Text 'java-version.txt' $javaVersion
     Add-Summary '- Java: FOUND (see java-version.txt)'
@@ -40,8 +45,8 @@ if (Test-Path $java) {
 
 # Tomcat
 $tomcatVersionBat = Join-Path $Pe84Root 'tomcat\bin\version.bat'
-if (Test-Path $tomcatVersionBat) {
-    $tomcatVersion = (& cmd.exe /c "`"$tomcatVersionBat`"" 2>&1 | Out-String).Trim()
+if (Test-Path -LiteralPath $tomcatVersionBat) {
+    $tomcatVersion = (& cmd.exe /d /c ('"{0}"' -f $tomcatVersionBat) 2>&1 | Out-String).Trim()
     Save-Text 'tomcat-version.txt' $tomcatVersion
     Add-Summary '- Tomcat: FOUND (see tomcat-version.txt)'
 } else {
@@ -50,7 +55,7 @@ if (Test-Path $tomcatVersionBat) {
 
 # PostgreSQL
 $postgres = Join-Path $Pe84Root 'pgsql\bin\postgres.exe'
-if (Test-Path $postgres) {
+if (Test-Path -LiteralPath $postgres) {
     $postgresVersion = (& $postgres --version 2>&1 | Out-String).Trim()
     Save-Text 'postgres-version.txt' $postgresVersion
     Add-Summary '- PostgreSQL: FOUND (see postgres-version.txt)'
@@ -64,11 +69,12 @@ $artifacts = @(
     (Join-Path $Pe84Root 'tomcat\webapps\prhelp.war'),
     (Join-Path $Pe84Root 'tomcat\lib\postgresql-42.0.0.jar')
 )
+
 $artifactRows = @()
 foreach ($artifact in $artifacts) {
-    if (Test-Path $artifact) {
-        $item = Get-Item $artifact
-        $hash = Get-FileHash -Algorithm SHA256 $artifact
+    if (Test-Path -LiteralPath $artifact) {
+        $item = Get-Item -LiteralPath $artifact
+        $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $artifact
         $artifactRows += [pscustomobject]@{
             Name = $item.Name
             Path = $item.FullName
@@ -76,21 +82,24 @@ foreach ($artifact in $artifacts) {
             LastWriteTime = $item.LastWriteTime.ToString('o')
             SHA256 = $hash.Hash
         }
-        Add-Summary "- Artifact $($item.Name): FOUND, $($item.Length) bytes"
+        Add-Summary ("- Artifact {0}: FOUND, {1} bytes" -f $item.Name, $item.Length)
     } else {
-        Add-Summary "- Artifact $(Split-Path $artifact -Leaf): NOT FOUND"
+        Add-Summary ("- Artifact {0}: NOT FOUND" -f (Split-Path $artifact -Leaf))
     }
 }
-$artifactRows | ConvertTo-Json -Depth 3 | Save-Text 'artifact-metadata.json'
+$artifactJson = $artifactRows | ConvertTo-Json -Depth 3
+Save-Text 'artifact-metadata.json' $artifactJson
 
 # Expanded prweb presence (names/count only, no proprietary contents copied).
 $expandedPrweb = Join-Path $Pe84Root 'tomcat\webapps\prweb'
-if (Test-Path $expandedPrweb) {
-    $expandedFiles = @(Get-ChildItem -Path $expandedPrweb -File -Recurse -ErrorAction SilentlyContinue)
-    Add-Summary "- Expanded prweb directory: FOUND ($($expandedFiles.Count) files)"
-    Get-ChildItem -Path $expandedPrweb -Force -ErrorAction SilentlyContinue |
+if (Test-Path -LiteralPath $expandedPrweb) {
+    $expandedFiles = @(Get-ChildItem -LiteralPath $expandedPrweb -File -Recurse -ErrorAction SilentlyContinue)
+    Add-Summary ("- Expanded prweb directory: FOUND ({0} files)" -f $expandedFiles.Count)
+    $prwebTopLevel = Get-ChildItem -LiteralPath $expandedPrweb -Force -ErrorAction SilentlyContinue |
         Select-Object Name, Mode, Length, LastWriteTime |
-        Format-Table -AutoSize | Out-String | Save-Text 'prweb-top-level.txt'
+        Format-Table -AutoSize |
+        Out-String
+    Save-Text 'prweb-top-level.txt' $prwebTopLevel
 } else {
     Add-Summary '- Expanded prweb directory: NOT FOUND'
 }
@@ -105,11 +114,16 @@ $configPaths = @(
     'scripts\shutdown.bat',
     'scripts\pg_env.bat'
 )
+
 $configRows = foreach ($relative in $configPaths) {
     $full = Join-Path $Pe84Root $relative
-    [pscustomobject]@{ RelativePath = $relative; Present = (Test-Path $full) }
+    [pscustomobject]@{
+        RelativePath = $relative
+        Present = (Test-Path -LiteralPath $full)
+    }
 }
-$configRows | ConvertTo-Json | Save-Text 'config-presence.json'
+$configJson = $configRows | ConvertTo-Json -Depth 3
+Save-Text 'config-presence.json' $configJson
 
 # Local ports: metadata only.
 $portRows = @()
@@ -123,22 +137,25 @@ foreach ($port in @(8080, 5432)) {
                 OwningProcess = $connection.OwningProcess
             }
         }
-        Add-Summary "- TCP $port: LISTENING"
+        Add-Summary ("- TCP {0}: LISTENING" -f $port)
     } else {
-        Add-Summary "- TCP $port: not listening"
+        Add-Summary ("- TCP {0}: not listening" -f $port)
     }
 }
-$portRows | ConvertTo-Json | Save-Text 'listening-ports.json'
+$portsJson = $portRows | ConvertTo-Json -Depth 3
+Save-Text 'listening-ports.json' $portsJson
 
 # Non-authenticated reachability probe only.
 $probeUrl = 'http://127.0.0.1:8080/prweb/'
 try {
     $response = Invoke-WebRequest -Uri $probeUrl -UseBasicParsing -TimeoutSec 10
-    Add-Summary "- HTTP probe $probeUrl: $($response.StatusCode)"
-    Save-Text 'http-probe.txt' "URL=$probeUrl`nStatusCode=$($response.StatusCode)`nStatusDescription=$($response.StatusDescription)"
+    Add-Summary ("- HTTP probe {0}: {1}" -f $probeUrl, $response.StatusCode)
+    $httpProbe = "URL={0}`nStatusCode={1}`nStatusDescription={2}" -f $probeUrl, $response.StatusCode, $response.StatusDescription
+    Save-Text 'http-probe.txt' $httpProbe
 } catch {
-    Add-Summary "- HTTP probe $probeUrl: FAILED / not reachable"
-    Save-Text 'http-probe.txt' "URL=$probeUrl`nResult=FAILED`nError=$($_.Exception.Message)"
+    Add-Summary ("- HTTP probe {0}: FAILED / not reachable" -f $probeUrl)
+    $httpProbe = "URL={0}`nResult=FAILED`nError={1}" -f $probeUrl, $_.Exception.Message
+    Save-Text 'http-probe.txt' $httpProbe
 }
 
 Add-Summary ''
@@ -147,5 +164,5 @@ Add-Summary ''
 Add-Summary 'This collection proves only local technical facts. It does not by itself prove a successful authenticated Pega login, functional Case Management, or OpenShift compatibility.'
 
 $summary | Out-File (Join-Path $outDir 'SUMMARY.md') -Encoding utf8
-Write-Host "Evidence written to: $outDir"
-Write-Host "Review/redact outputs before committing any evidence."
+Write-Host ("Evidence written to: {0}" -f $outDir)
+Write-Host 'Review/redact outputs before committing any evidence.'
