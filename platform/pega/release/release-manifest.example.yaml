@@ -1,0 +1,38 @@
+apiVersion: architecture.mayabank.example/v1alpha1
+kind: PegaReleaseManifest
+metadata:
+  name: pega-release-candidate
+spec:
+  status: EXAMPLE_ONLY
+  pegaRelease: "<authorized-pega-release>"
+  products:
+    - "Pega Platform"
+    - "<optional-entitled-product>"
+  vendorHelmChart:
+    repository: "https://github.com/pegasystems/pega-helm-charts"
+    ref: "<pinned-tag-or-commit>"
+  configurationRevision: "<git-sha>"
+  images:
+    runtime: "<internal-registry>/<path>@sha256:<digest>"
+    installer: "<internal-registry>/<path>@sha256:<digest>"
+    srs: "<internal-registry>/<path>@sha256:<digest-if-required>"
+    clustering: "<internal-registry>/<path>@sha256:<digest-if-required>"
+  database:
+    engine: "<supported-engine>"
+    version: "<supported-version>"
+    changeRequired: "<true-or-false>"
+    changePlan: "<runbook-reference>"
+  environments:
+    dev:
+      approved: false
+    test:
+      approved: false
+    preprod:
+      approved: false
+    prod:
+      approved: false
+  rollbackClass: "<A-config-only|B-image-compatible|C-forward-fix|D-db-recovery>"
+  evidence:
+    staticValidation: "<reference>"
+    runtimeValidation: "<reference-or-NOT_AVAILABLE>"
+    haValidation: "<reference-or-NOT_AVAILABLE>"
