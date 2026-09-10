@@ -6,7 +6,7 @@
 pega-upstream-remote        optional controlled proxy/reference
 pega-quarantine-local      newly acquired images, not production-approved
 pega-approved-local        approved immutable images
-ega-virtual                cluster-facing endpoint (name illustrative)
+pega-virtual               cluster-facing endpoint (name illustrative)
 ```
 
 The exact naming is organization-specific. The architecture goal is to separate **acquisition/quarantine** from **approved deployment artifacts**.
