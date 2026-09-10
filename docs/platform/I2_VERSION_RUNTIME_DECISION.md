@@ -2,131 +2,90 @@
 
 ## Decision date
 
-2026-09-10.
+2026-09-10 — mise à jour après audit du package local Pega 8.4 Personal Edition.
 
-## Target version
+## Décision : deux baselines distinctes
 
-### Preferred target
+Le projet sépare désormais strictement :
 
-**Pega Platform Infinity '26 — 26.1.1**, sous réserve que l'utilisateur dispose des droits, images et produits nécessaires.
+1. **baseline legacy réellement possédée par l'opérateur** : Pega Personal Edition **8.4.0**, candidate pour un lab local/reconstruction ;
+2. **architecture cible moderne** : Pega Infinity **26.1.1** sur OpenShift via mécanismes Helm officiels, **DESIGNED ONLY** tant qu'aucun entitlement/image Pega moderne n'est disponible.
 
-Raison : la documentation publique Pega liste 26.1.1 comme patch Infinity '26 publié le **1er septembre 2026**. Infinity '26 est GA depuis le 14 juillet 2026.
+Cette séparation évite de présenter une architecture Pega 26 comme réellement exécutée alors que l'opérateur ne possède actuellement que les anciens artefacts Pega 8.
 
-### Fallback target
+## Baseline legacy disponible
 
-**Pega Platform Infinity '25 — 25.1.3** uniquement si entitlement, compatibilité produit ou disponibilité des artefacts rend 26.1.1 impossible dans le lab.
+Audit source privé : `zdmooc/pega-8.4-personal-edition-audit`.
 
-Le fallback n'est pas automatique : il doit être enregistré dans une ADR mise à jour avec la cause.
+Faits confirmés par inventaire :
 
-## Official deployment baseline
+- package racine `116674_PE8.4.0` ;
+- JDK/JRE `1.8.0_121` ;
+- Apache Tomcat **8.x** confirmé par la présence de `tomcat8w.exe` ; patch exact à relever localement ;
+- distribution PostgreSQL Windows embarquée ; version exacte à relever localement ;
+- driver JDBC PostgreSQL `postgresql-42.0.0.jar` ;
+- `prweb.war` et `prhelp.war` présents ;
+- `PRPC_PE.jar` et `PersonalEdition.zip` présents ;
+- scripts `startup.bat`, `shutdown.bat`, `pg_env.bat` ;
+- configuration Tomcat `server.xml`, `context.xml`, `catalina.properties`, `web.xml`.
 
-Source de référence : dépôt officiel Pegasystems `pega-helm-charts` et documentation Pega d'installation/update.
+Empreintes confirmées :
 
-- Helm 3+ ;
-- Pega Docker images autorisées et accessibles via registry ;
-- provider OpenShift configuré avec `openshift` ;
-- base SQL supportée et accessible ;
-- chart `pega/pega` ;
-- `pega/backingservices` lorsque SRS/backing services sont nécessaires ;
-- installation initiale avec action `install-deploy`, puis déploiements ultérieurs sans réinstaller le schéma.
+- `prweb.war` SHA-256 : `434e2063f00fc36c17c1277292681c23fe2495789743cb33339f2f505329f691` ;
+- `postgresql-42.0.0.jar` SHA-256 : `3bec21d1677f6cfce3e49d3578d4c84365264841753941197edf50363de28798`.
 
-La documentation OpenShift publique Pegasystems indique un support de **Red Hat OpenShift Container Platform self-managed**. Le lab CRC est utilisé comme environnement de développement local ; il ne constitue pas une preuve de HA ou de support production.
+### Limites de preuve de la baseline legacy
 
-## Helm chart strategy
+L'inventaire confirme l'existence des artefacts mais **ne prouve pas** encore qu'ils constituent à eux seuls un runtime Pega 8.4 reconstruisible dans un conteneur.
 
-Ne pas copier une version ancienne du chart dans le dépôt comme vérité permanente.
+En particulier :
 
-Au moment du run :
+- version exacte Tomcat à relever par `version.bat` ;
+- version exacte PostgreSQL à relever par `postgres.exe --version` ;
+- état et localisation de la base Pega existante à identifier ;
+- contenu/configuration JNDI réelle à relever sans publier de secret ;
+- aucun `prconfig.xml` ou `prbootstrap.properties` n'a été identifié dans la recherche d'inventaire actuelle ;
+- le package audité expose le WAR mais aucune arborescence `webapps/prweb/WEB-INF/lib` n'a été identifiée dans l'inventaire binaire ;
+- un démarrage/login réel reste nécessaire avant tout statut `RUNTIME VALIDATED`.
 
-```bash
-helm repo add pega https://pegasystems.github.io/pega-helm-charts
-helm repo update
-helm search repo pega --versions
-helm show values pega/pega > evidence/runtime/pega-chart-values.txt
+## Architecture cible moderne
+
+### Cible
+
+**Pega Infinity 26.1.1** reste la cible d'architecture et de modernisation.
+
+Elle reste :
+
+```text
+TARGET ARCHITECTURE = Pega Infinity 26.1.1
+EXECUTION STATUS    = DESIGNED ONLY / ENTITLEMENT REQUIRED
 ```
 
-Le runbook public consulté le 2026-09-10 montre `pega/pega` chart **2.2.0**. Le script de préflight doit néanmoins relever la version réellement sélectionnée et l'enregistrer dans `evidence/runtime/VERSIONS.md`.
+Le déploiement moderne utilise le dépôt officiel Pegasystems `pega-helm-charts`, OpenShift, une base supportée, les images autorisées, Clustering Service/SRS selon compatibilité, TLS, secrets et observabilité.
 
-## Products / capabilities
+## Runtime tracks
 
-| Capability | Design target | Runtime claim before entitlement |
+| Track | Usage | Statut |
 |---|---|---|
-| Pega Platform | 26.1.1 preferred | NOT VALIDATED |
-| Case Management | required | NOT VALIDATED |
-| Constellation | target UX | NOT VALIDATED |
-| Pega Customer Service | target CRM product if entitled | NOT VALIDATED |
-| Customer Decision Hub | optional advanced decisioning if entitled | NOT VALIDATED |
-| SRS / search & reporting | according to version requirements | NOT VALIDATED |
-| Pega GenAI services | later I9 and only if licensed/configured | NOT VALIDATED |
-
-## Runtime topology target
-
-### CRC lab
-
-```text
-OpenShift Local / CRC
-  namespace: mayabank-pega
-    Pega web/runtime via official Helm mechanism
-    integration adapters / mocks
-    PostgreSQL lab OR externally reachable supported PostgreSQL
-    optional backing services according to selected Pega version
-```
-
-CRC is **single-node**. It can validate manifests, route, connectivity, application access and functional flows, not worker/zone/site resilience.
-
-### Enterprise target
-
-```text
-OpenShift self-managed
-  -> multiple worker nodes
-  -> separated Pega tiers/node roles as supported
-  -> external/HA database
-  -> SRS/search services as required
-  -> externalized Kafka where architecture requires it
-  -> ingress/route TLS
-  -> secrets and registry controls
-  -> observability
-  -> backup/PRA
-```
+| `legacy-pe84-local` | audit/reconstruction Pega PE 8.4.0 existant | CANDIDATE — local verification required |
+| `modern-pega26-openshift` | architecture cible entreprise | DEPLOYMENT READY DESIGN — entitlement required |
 
 ## Database decision
 
-For the local reference lab, use **PostgreSQL** because the official OpenShift deployment guide demonstrates Pega with PostgreSQL. Exact PostgreSQL major version and driver must be checked against the selected Pega 26.1.1 support matrix before runtime installation.
+Pour le track legacy, conserver d'abord la base PostgreSQL historiquement associée au package afin de comprendre la configuration réelle. Ne pas migrer arbitrairement vers PostgreSQL 13/16 avant d'avoir identifié la version et le schéma d'origine.
 
-Therefore the repo does **not** hard-code an unsupported PostgreSQL major version as a Pega production requirement. A lab manifest can provide a placeholder PostgreSQL service, but the preflight gate must confirm compatibility before executing the Pega database installer.
+Pour le track moderne, PostgreSQL reste le choix de lab, mais la version majeure/JDBC doit être vérifiée dans la matrice de compatibilité du patch Pega réellement obtenu.
 
-## Search / stream decisions
+## Sécurité / propriété intellectuelle
 
-- Search/reporting architecture must follow the selected Infinity version and SRS compatibility guidance.
-- For stream/event processing, prefer an **externalized Kafka** architecture in the enterprise target when applicable. The existing MayaBank Kafka repositories are reused rather than embedding a second full Kafka platform here.
-- Do not treat Kafka required by Pega internals and business-domain event streaming as automatically the same lifecycle/security domain; document the integration before merging them.
+Aucun WAR/JAR/ZIP propriétaire Pega n'est versionné dans ce dépôt public. Les binaires legacy restent localement chez l'opérateur et ne sont référencés que par métadonnées/hashes.
 
-## Runtime evidence required
+## Gate I2
 
-Before any `RUNTIME VALIDATED` claim, record:
+**I2 ARCHITECTURE DECISION: PASS.**
 
-- `oc version` ;
-- `crc version` ;
-- `helm version` ;
-- selected Helm chart version ;
-- Pega image tags/digests without credentials ;
-- Pega application version ;
-- DB version ;
-- OpenShift namespace ;
-- install command with secrets redacted ;
-- pod status ;
-- route ;
-- smoke test result ;
-- timestamp.
+**LEGACY PACKAGE AUDIT: PASS — inventory confirmed.**
 
-## External references
+**LEGACY RUNTIME EXECUTION: PENDING LOCAL VERIFICATION.**
 
-- Pega installation/update roadmap: `https://support.pega.com/installation-and-update-information-pega-products`
-- Official Helm charts: `https://github.com/pegasystems/pega-helm-charts`
-- OpenShift deployment guide: `https://github.com/pegasystems/pega-helm-charts/blob/master/docs/Deploying-Pega-on-openshift.md`
-
-## Decision
-
-**Architecture baseline selected: Infinity 26.1.1 preferred + official Helm/OpenShift deployment path.**
-
-**Entitlement/image access remains an external gate and cannot be inferred from GitHub.**
+**MODERN PEGA 26 ENTITLEMENT: PENDING.**

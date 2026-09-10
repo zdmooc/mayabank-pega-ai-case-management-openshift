@@ -2,67 +2,80 @@
 
 ## Scope
 
-I3 a deux niveaux de complétude :
+I3 comporte désormais deux tracks complémentaires :
 
-1. **DEPLOYMENT READY** — manifests, templates, scripts, sécurité et runbook versionnés ;
-2. **RUNTIME VALIDATED** — ces éléments ont réellement été exécutés sur le CRC de l'opérateur avec des artefacts Pega autorisés.
+1. **Track A — legacy-pe84-local** : exploiter le package Pega Personal Edition 8.4.0 réellement disponible pour obtenir des preuves locales ;
+2. **Track B — modern-pega26-openshift** : conserver l'infrastructure-as-code OpenShift/Helm prête pour Pega Infinity 26 lorsque les images/licences seront disponibles.
 
-Le premier niveau peut être terminé dans GitHub. Le second exige le cluster local et les entitlements Pega du propriétaire.
+## Track B — Modern OpenShift
 
-## Matrice
-
-| Exigence I3 | Preuve versionnée | Statut |
+| Exigence | Preuve | Statut |
 |---|---|---|
-| Namespace/projet lab | `openshift/crc/namespace.yaml` | DONE |
+| Namespace | `openshift/crc/namespace.yaml` | DONE |
 | ResourceQuota | `openshift/crc/resourcequota.yaml` | DONE |
 | LimitRange | `openshift/crc/limitrange.yaml` | DONE |
-| ServiceAccount/RBAC least privilege | `openshift/crc/rbac-observer.yaml` | DONE |
-| Secret pattern sans valeur réelle dans Git | `.gitignore`, `.env.example`, `scripts/i3/create-secrets.sh` | DONE |
-| Storage/PVC | template PostgreSQL + chart Pega | DONE AS DESIGN |
-| Database lab | `openshift/crc/postgres-lab.yaml.tpl` | READY, COMPATIBILITY GATE |
-| Déploiement Pega supporté | `pega/pega` overlay + `scripts/i3/deploy.sh` | READY, ENTITLEMENT GATE |
-| Service / Route TLS | chart officiel + `ensure-route-tls.sh` | READY |
-| Readiness/liveness | chart Pega + DB probes | READY |
-| NetworkPolicies | staged policy + guarded apply script | READY, ENDPOINT MAPPING REQUIRED |
-| Requests/limits | Helm overlay + ResourceQuota/LimitRange | DONE AS LAB CONFIG |
-| Smoke test UI/API | `scripts/i3/verify.sh` | READY TO RUN |
-| Limites CRC mono-nœud documentées | I2 prerequisites + I3 runbook | DONE |
-| Evidence | `evidence/README.md` + verify/preflight | READY TO CAPTURE |
-| Cleanup / data-safety | `scripts/i3/cleanup.sh` | DONE |
-| Static validation | `scripts/i3/static-validate.sh` | READY TO RUN |
+| RBAC | `openshift/crc/rbac-observer.yaml` | DONE |
+| Secrets | `.gitignore`, `.env.example`, scripts I3 | DONE |
+| PostgreSQL template | `openshift/crc/postgres-lab.yaml.tpl` | READY / compatibility gate |
+| Helm Pega | `openshift/helm/pega-values-crc.overlay.yaml.tpl` | READY / entitlement gate |
+| Route TLS | `ensure-route-tls.sh` | READY |
+| NetworkPolicies | staged policy | READY |
+| Validation statique | `static-validate.sh` | READY |
+| Preflight | `preflight.sh` | READY |
+| Deploy | `deploy.sh` | READY |
+| Verify/evidence | `verify.sh` + `evidence/README.md` | READY |
+| Cleanup | `cleanup.sh` | DONE |
 
-## Explicitly pending runtime facts
+**Track B status: PASS — DEPLOYMENT READY DESIGN.**
 
-The repository must **not** claim these until evidence exists:
+Il reste bloqué à l'exécution parce qu'aucune image/licence Pega Infinity 26 n'est actuellement disponible.
 
-- Pega 26.1.1 image successfully pulled ;
-- Pega schema successfully installed ;
-- runtime pods Ready on the user's CRC ;
-- HTTPS Route responding ;
-- Pega login successful ;
-- Customer Service product installed ;
-- Constellation/CDH available ;
-- any HA/RPO/RTO result.
+## Track A — Pega 8.4 local
 
-## Gate status
+L'inventaire confirme Pega PE 8.4.0, Java 8u121, Tomcat 8.x, PostgreSQL embarqué, `prweb.war`, `prhelp.war` et le driver PostgreSQL 42.0.0.
 
-**I3 IMPLEMENTATION: PASS — DEPLOYMENT READY.**
+Les scripts `scripts/i3-legacy/collect-pe84-evidence.ps1` et `scripts/i3-legacy/README.md` servent à relever sans secret :
 
-**I3 RUNTIME VALIDATION: PENDING OPERATOR EXECUTION.**
+- version Java ;
+- version Tomcat exacte ;
+- version PostgreSQL exacte ;
+- tailles et SHA-256 des artefacts ;
+- présence du dossier `webapps/prweb` ;
+- état des processus/ports si le runtime est démarré ;
+- preuve de réponse HTTP locale.
 
-To close the runtime gate:
+### Track A runtime gate
 
-```bash
-cp .env.example .env
-# fill authorized image/JDBC/registry values
-bash scripts/i3/static-validate.sh
-bash scripts/i3/preflight.sh
-bash scripts/i3/create-secrets.sh
-export CONFIRM_INITIAL_PEGA_INSTALL=yes
-bash scripts/i3/deploy.sh
-# login manually to Pega
-export CONFIRM_PEGA_LOGIN=yes
-bash scripts/i3/verify.sh
+Pour passer à `RUNTIME VALIDATED`, il faut encore exécuter localement :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\i3-legacy\collect-pe84-evidence.ps1
 ```
 
-Only after successful execution and evidence review can the backlog item “Pega réellement accessible sur CRC” be checked.
+Puis :
+
+1. démarrer Personal Edition avec ses scripts historiques ;
+2. vérifier la base PostgreSQL ;
+3. ouvrir Pega dans le navigateur ;
+4. confirmer un login réel ;
+5. conserver les preuves nettoyées.
+
+## Ce qui n'est pas encore revendiqué
+
+- Pega 8.4 fonctionnel sur CRC ;
+- Pega 8.4 containerisé avec succès ;
+- Pega 26 déployé ;
+- Customer Service/CDH/Constellation disponibles ;
+- HA/PRA validés.
+
+## Gate global I3
+
+```text
+I3 INFRA / AUTOMATION            = PASS — DEPLOYMENT READY
+I3 LEGACY LOCAL AUDIT TOOLING    = PASS — READY TO RUN
+I3 PEGA 8.4 LOCAL RUNTIME        = PENDING OPERATOR EXECUTION
+I3 PEGA 8.4 ON OPENSHIFT         = NOT YET VALIDATED
+I3 PEGA 26 ON OPENSHIFT          = BLOCKED BY ENTITLEMENT
+```
+
+I3 est donc terminé côté **architecture, scripts et préparation**. Le seul travail restant pour le statut runtime est l'exécution sur la machine de l'opérateur.

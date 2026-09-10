@@ -35,6 +35,6 @@ tmp/
 .DS_Store
 Thumbs.db
 
-# Runtime evidence may be curated and committed selectively.
-# Raw evidence stays local until reviewed.
+# Runtime evidence must be reviewed/redacted before selective commit
 evidence/runtime/raw/
+evidence/runtime/pe84-local/

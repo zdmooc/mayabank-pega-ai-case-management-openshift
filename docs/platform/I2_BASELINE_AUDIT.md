@@ -1,64 +1,83 @@
-# I2 — Audit de la baseline `pega-docker-repo`
+# I2 — Audit de baseline legacy Pega
 
-## Résumé
+## Sources auditées
 
-Le dépôt `zdmooc/pega-docker-repo` est conservé comme **baseline historique / laboratoire legacy**, mais il n'est pas retenu comme cible principale 2026 pour `mayabank-pega-ai-case-management-openshift`.
+Deux sources historiques sont conservées :
 
-## État observé au 10 septembre 2026
+- `zdmooc/pega-docker-repo` : squelette Docker/Tomcat/PostgreSQL historique ;
+- `zdmooc/pega-8.4-personal-edition-audit` : inventaire privé du package local **Pega Personal Edition 8.4.0** réellement possédé par l'opérateur.
 
-### Runtime
+## 1. `pega-docker-repo`
 
-- `tomcat:8.5-jdk8-temurin` ;
-- application Pega fournie manuellement sous forme `prweb.war` / `prhelp.war` ;
-- PostgreSQL 13 ;
-- Docker Compose ;
-- un seul conteneur Pega ;
-- `JAVA_OPTS` avec heap 2 GiB ;
-- plusieurs NodeTypes (`Stream,BackgroundProcessing,WebUser,Search`) co-localisés dans le même runtime ;
-- JNDI `jdbc/PegaRULES` et `jdbc/AdminPegaRULES` ;
-- scripts de restauration PostgreSQL.
+Ce dépôt reste un **lab legacy / référence de patterns**, pas la cible moderne.
 
-## Classification
+Éléments utiles :
 
-| Élément | Décision | Justification |
+- Tomcat 8.5 / Java 8 ;
+- chargement manuel de `prweb.war` ;
+- PostgreSQL ;
+- JNDI `jdbc/PegaRULES` / `jdbc/AdminPegaRULES` ;
+- scripts de restauration ;
+- configuration externalisée par variables.
+
+À ne pas reprendre tel quel : mot de passe par défaut, port DB exposé, co-localisation des NodeTypes, mono-runtime, absence de HA et de mécanismes OpenShift/GitOps.
+
+## 2. Package local Pega PE 8.4.0
+
+L'inventaire privé confirme :
+
+```text
+116674_PE8.4.0/
+  PRPC_PE/
+    PersonalEdition/
+      jre1.8.0_121/
+      pgsql/
+      scripts/
+      tomcat/
+```
+
+Faits utiles pour la reconstruction :
+
+| Élément | Observation | Décision |
 |---|---|---|
-| Modèle `.env.example` | REUSE PATTERN | utile comme convention de configuration locale, sans secret réel |
-| `.gitignore` secrets/artefacts | REUSE PATTERN | garde-fou nécessaire |
-| PostgreSQL healthcheck | REUSE CONCEPT | pattern utile, implémentation à adapter à OpenShift |
-| scripts `pg_restore` | REUSE CONCEPT | utile pour restauration de lab, à adapter et documenter |
-| JNDI datasource concepts | REFERENCE ONLY | le mécanisme concret dépend du runtime/chart Pega retenu |
-| `prweb.war` copié dans image Tomcat | LEGACY | ne pas utiliser comme cible moderne par défaut |
-| Tomcat 8.5 + Java 8 | LEGACY | ne doit pas représenter la cible Infinity '26 |
-| Docker Compose | LEGACY/LAB | pratique pour historique, pas pour la cible OpenShift |
-| NodeTypes tous co-localisés | DO NOT REUSE | contraire à l'objectif d'architecture scalable et observable |
-| mot de passe PostgreSQL par défaut `pega` | DO NOT REUSE | acceptable uniquement comme squelette historique ; interdit pour le nouveau lab |
-| port PostgreSQL publié sur host | DO NOT REUSE BY DEFAULT | inutile et élargit la surface d'exposition dans le nouveau lab |
+| Pega | package identifié `PE8.4.0` | BASELINE LEGACY CONFIRMED |
+| Java | 1.8.0_121 | LEGACY, conserver pour audit uniquement |
+| Tomcat | 8.x (`tomcat8w.exe`) | patch exact à mesurer |
+| PostgreSQL | distribution embarquée | version exacte à mesurer |
+| JDBC | `postgresql-42.0.0.jar` | référence historique |
+| `prweb.war` | présent, SHA-256 versionné | artefact local uniquement |
+| `prhelp.war` | présent | artefact local uniquement |
+| `PRPC_PE.jar` | présent | artefact local uniquement |
+| `PersonalEdition.zip` | présent | artefact local uniquement |
+| scripts | startup/shutdown/pg_env | à analyser localement |
+| Tomcat conf | server/context/catalina/web | à relever après redaction |
 
-## Risques si réutilisé tel quel
+## Point important
 
-1. **Obsolescence technique** : le Dockerfile est centré Tomcat 8.5 / Java 8.
-2. **Couplage des rôles** : web, background, stream et search sont regroupés.
-3. **Sécurité** : valeur de mot de passe par défaut dans Compose ; absence de modèle secret OpenShift.
-4. **HA inexistante** : un conteneur Pega, un PostgreSQL local.
-5. **Observabilité limitée** : aucune preuve de métriques/traces structurées intégrées.
-6. **Déploiement non représentatif** : pas de Helm Pega ni d'objets OpenShift.
-7. **Search/stream architecture historique** : doit être recalée sur les dépendances et recommandations de la version Pega choisie.
+L'existence de `prweb.war` ne suffit pas à prouver que le WAR est autonome ou directement containerisable. Le prochain contrôle doit mesurer : taille, version Tomcat/PostgreSQL, JNDI, état de la base, capacité à démarrer localement et login Pega.
 
-## Décision
+La recherche d'inventaire actuelle n'a pas identifié `prconfig.xml` ou `prbootstrap.properties`, ni de bibliothèque sous `webapps/prweb/WEB-INF/lib`. Cela doit être revérifié sur l'installation réellement démarrée `C:\workspaces\paga\PersonalEdition` si elle diffère du package source.
 
-Le nouveau dépôt utilise un **déploiement OpenShift propre basé sur les mécanismes officiellement maintenus par Pegasystems**, avec valeurs/artefacts fournis par l'utilisateur selon ses droits.
+## Stratégie retenue
 
-`pega-docker-repo` reste utile pour :
+```text
+PEGA 8.4 PERSONAL EDITION
+  -> audit local réel
+  -> preuve de démarrage
+  -> documentation de la configuration
+  -> reconstruction contrôlée Docker si licence compatible
+  -> portage expérimental OpenShift/CRC si techniquement et juridiquement permis
 
-- expliquer l'évolution d'une installation WAR/Tomcat vers un runtime containerisé orchestré ;
-- récupérer les idées de restauration DB et de configuration externalisée ;
-- comparer une architecture mono-runtime avec une architecture de plateforme moderne ;
-- démontrer la capacité à auditer et moderniser un patrimoine Pega historique.
-
-## Action sur l'ancien dépôt
-
-Ne pas supprimer. Ajouter ultérieurement un bandeau README `LEGACY BASELINE / NOT TARGET ARCHITECTURE` si on souhaite éviter toute ambiguïté publique.
+PEGA INFINITY 26
+  -> architecture cible
+  -> Helm officiel / OpenShift
+  -> aucune revendication d'exécution sans entitlement
+```
 
 ## Gate
 
-**Audit terminé.** Aucun fichier binaire propriétaire Pega n'a été copié dans le nouveau dépôt.
+**Audit legacy : PASS.**
+
+**Reconstruction runtime : PENDING LOCAL EVIDENCE.**
+
+Aucun binaire propriétaire n'est copié dans ce dépôt public.
