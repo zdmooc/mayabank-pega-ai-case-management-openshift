@@ -1,0 +1,28 @@
+status: EXAMPLE_ONLY
+registryProduct: "Artifactory-or-equivalent"
+repositories:
+  quarantine:
+    type: local
+    key: pega-quarantine-local
+    deployableToProduction: false
+  approved:
+    type: local
+    key: pega-approved-local
+    immutablePolicy: true
+    deployableToProduction: true
+  upstreamProxy:
+    type: remote
+    key: pega-upstream-remote
+    enabled: "<only-if-vendor-and-contract-support-proxying>"
+  consumer:
+    type: virtual
+    key: pega-virtual
+    members:
+      - pega-approved-local
+security:
+  tlsVerify: true
+  anonymousAccess: false
+  serviceAccounts: true
+  vulnerabilityPolicy: required
+  sbom: required
+  audit: required
