@@ -1,0 +1,12 @@
+status: EXAMPLE_ONLY
+environment: test
+data:
+  classification: synthetic_or_masked
+availability:
+  productionSlaClaimAllowed: false
+promotion:
+  sourceEnvironment: dev
+  requiresFunctionalRegression: true
+  requiresIntegrationRegression: true
+release:
+  requireSameApprovedDigestAsDev: true

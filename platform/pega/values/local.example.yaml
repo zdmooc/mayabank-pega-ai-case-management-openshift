@@ -1,0 +1,15 @@
+status: EXAMPLE_ONLY
+environment: local
+platform:
+  provider: openshift
+  topology: single-node-crc
+availability:
+  haClaimAllowed: false
+data:
+  syntheticOnly: true
+resources:
+  profile: developer-lab
+routes:
+  hostname: "<local-route-host>"
+observability:
+  evidenceLevel: STATIC_OR_LOCAL_RUNTIME_ONLY

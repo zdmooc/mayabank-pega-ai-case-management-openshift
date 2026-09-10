@@ -1,0 +1,27 @@
+# MayaBank overlay contract — not a copy of the vendor chart values.
+# Map these fields to the selected official Pega Helm chart version after pinning it.
+status: EXAMPLE_ONLY
+platform:
+  provider: openshift
+  environmentClass: common
+release:
+  pegaVersion: "<authorized-release>"
+  vendorChartRef: "<pinned-tag-or-commit>"
+images:
+  useApprovedInternalRegistryOnly: true
+  runtime: "<internal-registry>/<path>@sha256:<digest>"
+  installer: "<internal-registry>/<path>@sha256:<digest>"
+  srs: "<internal-registry>/<path>@sha256:<digest-if-required>"
+  clustering: "<internal-registry>/<path>@sha256:<digest-if-required>"
+security:
+  secretsFromGit: false
+  tlsRequired: true
+  defaultDenyNetworkPolicy: true
+  approvedRegistryOnly: true
+database:
+  endpointSecretRef: "<secret-reference>"
+  credentialsSecretRef: "<secret-reference>"
+observability:
+  metrics: true
+  logs: true
+  traces: "<as-supported>"

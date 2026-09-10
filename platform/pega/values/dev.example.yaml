@@ -1,0 +1,11 @@
+status: EXAMPLE_ONLY
+environment: dev
+data:
+  classification: synthetic_or_masked
+availability:
+  productionSlaClaimAllowed: false
+promotion:
+  sourceEnvironment: local
+  requiresRuntimeSmokeTest: true
+release:
+  requireApprovedDigest: true

@@ -1,0 +1,27 @@
+status: EXAMPLE_ONLY
+customerReference: "<internal-non-secret-id>"
+deploymentModel: "<pega-cloud|client-managed|on-prem-self-managed>"
+products:
+  pegaPlatform:
+    required: true
+    entitled: "<verify-in-customer-contract>"
+  customerService:
+    required: true
+    entitled: "<verify-in-customer-contract>"
+  customerDecisionHub:
+    required: false
+    entitled: "<verify-if-required>"
+release:
+  target: "<authorized-release>"
+  supportStatus: "<verify>"
+softwareDistribution:
+  containerAccessAuthorized: "<verify>"
+  credentialLocation: "external-secret-manager"
+environments:
+  dev: "<verify-rights>"
+  test: "<verify-rights>"
+  preprod: "<verify-rights>"
+  prod: "<verify-rights>"
+disasterRecovery:
+  contractualReviewRequired: true
+notes: "Do not store order forms, licence files, tokens or secrets in Git."

@@ -1,0 +1,13 @@
+status: EXAMPLE_ONLY
+environment: preprod
+data:
+  classification: masked_or_synthetic
+availability:
+  target: production_like
+promotion:
+  sourceEnvironment: test
+  requiresSecurityValidation: true
+  requiresPerformanceValidation: true
+  requiresRollbackPlan: true
+release:
+  requireSameApprovedDigestAsTest: true
