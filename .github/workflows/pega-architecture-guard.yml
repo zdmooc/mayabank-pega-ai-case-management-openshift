@@ -1,0 +1,48 @@
+name: Pega Architecture Guard
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate no proprietary artifacts or obvious secrets
+        shell: bash
+        run: bash scripts/modern/validate-no-secrets.sh .
+
+      - name: Validate image/release contract
+        shell: bash
+        run: bash scripts/modern/validate-release-contract.sh
+
+      - name: Validate YAML syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          try:
+              import yaml
+          except Exception as exc:
+              print(f"PyYAML unavailable: {exc}")
+              sys.exit(1)
+          failed = False
+          for p in pathlib.Path('.').rglob('*.yaml'):
+              if '.git' in p.parts:
+                  continue
+              try:
+                  list(yaml.safe_load_all(p.read_text(encoding='utf-8')))
+              except Exception as exc:
+                  failed = True
+                  print(f"YAML ERROR {p}: {exc}")
+          if failed:
+              sys.exit(1)
+          print('PASS: YAML syntax')
+          PY
