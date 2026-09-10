@@ -1,0 +1,40 @@
+# Secrets and local runtime inputs
+.env
+.env.*
+!.env.example
+*.secret.yaml
+*.secrets.yaml
+secrets/
+
+# Generated Helm values containing local/sensitive values
+.generated/
+openshift/generated/
+pega-values.local.yaml
+
+# Proprietary Pega artifacts
+*.war
+*.ear
+*.jar
+*.zip
+*.dump
+*.bak
+
+# Kubernetes/OpenShift credentials
+kubeconfig
+*.kubeconfig
+pull-secret*
+
+# Terraform/state
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Local logs / temp
+tmp/
+*.log
+.DS_Store
+Thumbs.db
+
+# Runtime evidence may be curated and committed selectively.
+# Raw evidence stays local until reviewed.
+evidence/runtime/raw/

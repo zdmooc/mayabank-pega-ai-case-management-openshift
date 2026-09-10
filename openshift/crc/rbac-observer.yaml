@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mayabank-pega-observer
+  namespace: mayabank-pega
+  labels:
+    app.kubernetes.io/part-of: mayabank-pega-solution-architecture
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mayabank-pega-observer
+  namespace: mayabank-pega
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "endpoints", "events", "persistentvolumeclaims", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mayabank-pega-observer
+  namespace: mayabank-pega
+subjects:
+  - kind: ServiceAccount
+    name: mayabank-pega-observer
+    namespace: mayabank-pega
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mayabank-pega-observer

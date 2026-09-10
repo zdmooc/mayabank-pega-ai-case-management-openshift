@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mayabank-pega
+  labels:
+    app.kubernetes.io/part-of: mayabank-pega-solution-architecture
+    app.kubernetes.io/managed-by: git
+    mayabank.io/environment: crc
+    mayabank.io/data-classification: synthetic-only

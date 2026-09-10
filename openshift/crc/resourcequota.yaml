@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mayabank-pega-crc-quota
+  namespace: mayabank-pega
+  labels:
+    app.kubernetes.io/part-of: mayabank-pega-solution-architecture
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 24Gi
+    limits.cpu: "12"
+    limits.memory: 32Gi
+    requests.storage: 100Gi
+    persistentvolumeclaims: "12"
+    pods: "50"
+    services: "30"
+    secrets: "100"
+    configmaps: "100"
