@@ -1,0 +1,36 @@
+schemaVersion: 1
+status: EXAMPLE_ONLY
+vendor: Pegasystems
+release: "<authorized-pega-release>"
+acquiredAt: "<timestamp>"
+source:
+  registry: "<authorized-vendor-registry>"
+  entitlementReference: "<internal-reference-not-secret>"
+images:
+  runtime:
+    source: "<vendor-image>:<tag>"
+    digest: "sha256:<digest>"
+    internal: "<enterprise-registry>/<pega-approved-repo>/<image>@sha256:<digest>"
+    sbomRef: "<sbom-reference>"
+    scanRef: "<scan-reference>"
+    approvalRef: "<approval-reference>"
+  installer:
+    source: "<vendor-installer-image>:<tag>"
+    digest: "sha256:<digest>"
+    internal: "<enterprise-registry>/<pega-approved-repo>/<image>@sha256:<digest>"
+    sbomRef: "<sbom-reference>"
+    scanRef: "<scan-reference>"
+    approvalRef: "<approval-reference>"
+  srs:
+    required: "<true-or-false-per-release>"
+    source: "<vendor-image-if-required>"
+    digest: "sha256:<digest-if-required>"
+  clustering:
+    required: "<true-or-false-per-release>"
+    source: "<vendor-image-if-required>"
+    digest: "sha256:<digest-if-required>"
+policy:
+  immutableDigests: true
+  approvedRegistriesOnly: true
+  secretsInGit: false
+  proprietaryImagesInGit: false
